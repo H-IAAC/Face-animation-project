@@ -5,16 +5,26 @@ from moviepy.editor import VideoFileClip
 
 app = Flask(__name__)
 
+
+
 class AnimationPlayer:
     def __init__(self):
         self.neutral_path = "animations/neutral.gif"
         self.current_path = self.neutral_path
         self.neutral_playing = True
 
+
+    """
+    Plays a single animation frame by frame using Pygame, then quits.
+    """
     def play_animation(self, gif_path):
+
+        #TODO: Get the pygame and screen init and ending out of this method, and onto something bigger
+        #TODO: update the self.current_path variable
         pygame.init()
         pygame.display.set_mode((1, 1), pygame.HIDDEN)
 
+        #TODO: Add the .close() method to the clip object
         clip = VideoFileClip(gif_path)
         frames = clip.iter_frames(fps=clip.fps)
         num_frames = int(clip.fps * clip.duration)
@@ -50,12 +60,17 @@ class AnimationPlayer:
         self.current_path = gif_path
         self.start_neutral_animation()
 
+    #TODO: Is this even necessary?
     def start_neutral_animation(self):
         if self.current_path != self.neutral_path:
             self.play_animation(self.neutral_path)
 
+    #TODO: Is this even necessary?
     def stop_neutral_animation(self):
         self.neutral_playing = False
+
+
+
 
 @app.route('/start_animation', methods=['POST'])
 def start_animation():
@@ -63,10 +78,17 @@ def start_animation():
     gif_path = data.get('animation')
 
     if gif_path:
+
+        #TODO: Is this global variable a good practice?
         animation_player.start_animation(gif_path)
         return jsonify({'status': 'success', 'message': 'Animation started.'})
+    
     else:
         return jsonify({'status': 'error', 'message': 'Invalid request. Missing "animation" field in JSON.'})
+
+
+
+
 
 if __name__ == "__main__":
     animation_player = AnimationPlayer()
