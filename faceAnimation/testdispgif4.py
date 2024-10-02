@@ -72,7 +72,9 @@ class AnimationPlayer:
 
 
 
+# Define the route for starting the animation
 @app.route('/start_animation', methods=['POST'])
+
 def start_animation():
     data = request.get_json()
     gif_path = data.get('animation')
@@ -88,8 +90,11 @@ def start_animation():
 
 
 
-
-
 if __name__ == "__main__":
+
+    # Initialize the AnimationPlayer instance
     animation_player = AnimationPlayer()
+            
+    # Run the Flask app
     app.run(host='0.0.0.0', port=5000)
+    
