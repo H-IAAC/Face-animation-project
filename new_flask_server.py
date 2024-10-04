@@ -1,37 +1,94 @@
 from flask import Flask, request, jsonify
 import threading
+from queue import Queue, Empty
 import pygame
 from pygame.locals import *
 from moviepy.editor import VideoFileClip
 
-app = Flask(__name__)
 
 
+class GifServer:
 
-'''
-Function accessed via /display_animation url.
-It receives a JSON with the path to the animation to be displayed,
-and handles the signal to the animation thread.
-'''
-@app.route('/start_animation', methods=['POST'])
-def start_animation():
-    data = request.get_json()
-    gif_path = data.get('animation')
-
-    if gif_path:
-
-        return jsonify({'status': 'success', 'message': 'Animation started.'})
+    def __init__(self):
+        self.app = Flask(__name__)
+        self.animation_queue = Queue()
+        self.setup_route()
+        self.stop_event = threading.Event()  # Event to stop display thread
+        return
     
-    else:
-        return jsonify({'status': 'error', 'message': 'Invalid request. Missing "animation" field in JSON.'})
+
+    def setup_route(self):
+        '''
+        Function accessed via /display_animation url.
+        It receives a JSON with the path to the animation to be displayed,
+        and handles the signal to the animation thread.
+        '''
+        @self.app.route('/start_animation', methods=['POST'])
+        def start_animation():
+
+            data = request.get_json()
+            gif_path = data.get('animation')
+
+            if gif_path:
+
+                return jsonify({'status': 'success', 'message': 'Animation started.'})
+            
+            else:
+                return jsonify({'status': 'error', 'message': 'Invalid request. Missing "animation" field in JSON.'})
+
+
+    def gif_display(self):
+
+        #TODO: update the self.current_path variable
+        pygame.init()
+        screen = pygame.display.set_mode(size=(0, 0), flags=pygame.SCALED)
+        pygame.display.set_caption('Animated face')
+
+        while True:
+            #TODO: Add the .close() method to the clip object
+            clip = VideoFileClip(gif_path)
+            frames = clip.iter_frames(fps=clip.fps)
+            num_frames = int(clip.fps * clip.duration)
+
+            #screen_width, screen_height = pygame.display.Info().current_w, pygame.display.Info().current_h
+
+            clock = pygame.time.Clock()
+
+            frame_count = 0
+
+            while frame_count < num_frames:
+                for event in pygame.event.get():
+                    if event.type == QUIT:
+                        pygame.quit()
+
+                frame = next(frames)
+                pygame_frame = pygame.surfarray.make_surface(frame.swapaxes(0, 1))
+                #pygame_frame = pygame.transform.scale(pygame_frame, (screen_width, screen_height))
+
+                screen.blit(pygame_frame, (0, 0))
+                pygame.display.flip()
+
+                frame_count += 1
+                clock.tick(clip.fps)
+
+        pygame.quit()
+        return
+    
+
+    def run_server(self):
+    
+        #Cannot be a daemon, needs proper file handling shutdown
+        thread_gif_display = threading.Thread(target=self.gif_display)
+        thread_gif_display.start()
+
+        self.app.run(port=5000, debug=True)
+        #Run this at the deployment server, in order to open up the server to the network:
+        #app.run(host='0.0.0.0', port=5000, debug=True)
+        return
 
 
 
 if __name__ == "__main__":
 
-    thread_animation = threading.Thread(target=start_animation)
-    
-    app.run(port=5000, debug=True)
-
-    #Run this at the deployment server, in order to open up the server to the network:
-    #app.run(host='0.0.0.0', port=5000, debug=True)
+    gif_server = GifServer()
+    gif_server.run_server()

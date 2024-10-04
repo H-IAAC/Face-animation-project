@@ -22,16 +22,16 @@ class AnimationPlayer:
         #TODO: Get the pygame and screen init and ending out of this method, and onto something bigger
         #TODO: update the self.current_path variable
         pygame.init()
-        pygame.display.set_mode((1, 1), pygame.HIDDEN)
+        pygame.display.set_mode(size=(1, 1), flags=pygame.HIDDEN)
+        pygame.display.set_caption('Animated face')
 
         #TODO: Add the .close() method to the clip object
         clip = VideoFileClip(gif_path)
         frames = clip.iter_frames(fps=clip.fps)
         num_frames = int(clip.fps * clip.duration)
 
-        screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        pygame.display.set_caption('Animated GIF')
-        screen_width, screen_height = pygame.display.Info().current_w, pygame.display.Info().current_h
+        screen = pygame.display.set_mode(size=(0, 0), flags=pygame.SCALED)
+        #screen_width, screen_height = pygame.display.Info().current_w, pygame.display.Info().current_h
 
         clock = pygame.time.Clock()
 
@@ -44,7 +44,7 @@ class AnimationPlayer:
 
             frame = next(frames)
             pygame_frame = pygame.surfarray.make_surface(frame.swapaxes(0, 1))
-            pygame_frame = pygame.transform.scale(pygame_frame, (screen_width, screen_height))
+            #pygame_frame = pygame.transform.scale(pygame_frame, (screen_width, screen_height))
 
             screen.blit(pygame_frame, (0, 0))
             pygame.display.flip()
