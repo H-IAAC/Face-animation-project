@@ -10,10 +10,14 @@ from moviepy.editor import VideoFileClip
 class GifServer:
 
     def __init__(self):
+
         self.app = Flask(__name__)
         self.animation_queue = Queue()
-        self.setup_route()
         self.stop_event = threading.Event()  # Event to stop display thread
+        self.default_animation_path = "animations/sad.gif"
+        self.current_path = self.default_animation_path
+        self.setup_route()
+
         return
     
 
@@ -30,7 +34,7 @@ class GifServer:
             gif_path = data.get('animation')
 
             if gif_path:
-
+                self.animation_queue.put(gif_path)
                 return jsonify({'status': 'success', 'message': 'Animation started.'})
             
             else:
@@ -39,14 +43,18 @@ class GifServer:
 
     def gif_display(self):
 
-        #TODO: update the self.current_path variable
         pygame.init()
-        screen = pygame.display.set_mode(size=(0, 0), flags=pygame.SCALED)
+        screen = pygame.display.set_mode(size=(0, 0))
         pygame.display.set_caption('Animated face')
 
-        while True:
-            #TODO: Add the .close() method to the clip object
-            clip = VideoFileClip(gif_path)
+        while not self.stop_event.is_set():
+
+            if self.animation_queue.empty():
+                self.current_path = self.default_animation_path
+            else:
+                self.current_path = self.animation_queue.get()
+            
+            clip = VideoFileClip(self.current_path)
             frames = clip.iter_frames(fps=clip.fps)
             num_frames = int(clip.fps * clip.duration)
 
@@ -55,11 +63,14 @@ class GifServer:
             clock = pygame.time.Clock()
 
             frame_count = 0
-
             while frame_count < num_frames:
+
+                #check for user closing the window
                 for event in pygame.event.get():
                     if event.type == QUIT:
+                        clip.close()
                         pygame.quit()
+                        return
 
                 frame = next(frames)
                 pygame_frame = pygame.surfarray.make_surface(frame.swapaxes(0, 1))
@@ -70,20 +81,34 @@ class GifServer:
 
                 frame_count += 1
                 clock.tick(clip.fps)
+            clip.close()
 
+        #if stop_event detected:
+        clip.close()
         pygame.quit()
         return
     
 
     def run_server(self):
-    
+        
         #Cannot be a daemon, needs proper file handling shutdown
         thread_gif_display = threading.Thread(target=self.gif_display)
         thread_gif_display.start()
 
-        self.app.run(port=5000, debug=True)
-        #Run this at the deployment server, in order to open up the server to the network:
-        #app.run(host='0.0.0.0', port=5000, debug=True)
+        try:
+
+            self.app.run(port=5000, debug=True)
+            #Run this at the deployment server, in order to open up the server to the network:
+            #app.run(host='0.0.0.0', port=5000, debug=True)
+            
+        except (KeyboardInterrupt, SystemExit) as ext:
+
+            print("Shutting down gracefully...")
+            self.stop_event.set()  # Signal the thread to stop
+            thread_gif_display.join()  # Wait for the thread to finish
+            print("Background thread stopped.")
+            return
+        
         return
 
 
