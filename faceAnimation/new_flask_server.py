@@ -42,23 +42,22 @@ class GifServer:
 
 
     def gif_display(self):
-
         pygame.init()
         screen = pygame.display.set_mode(size=(0, 0))
         pygame.display.set_caption('Animated face')
 
-        while not self.stop_event.is_set():
+        while True:
 
             if self.animation_queue.empty():
-                self.current_path = self.default_animation_path
+               self.current_path = self.default_animation_path
             else:
                 self.current_path = self.animation_queue.get()
-            
+                
             clip = VideoFileClip(self.current_path)
             frames = clip.iter_frames(fps=clip.fps)
             num_frames = int(clip.fps * clip.duration)
 
-            #screen_width, screen_height = pygame.display.Info().current_w, pygame.display.Info().current_h
+            screen_width, screen_height = pygame.display.Info().current_w, pygame.display.Info().current_h
 
             clock = pygame.time.Clock()
 
@@ -74,40 +73,27 @@ class GifServer:
 
                 frame = next(frames)
                 pygame_frame = pygame.surfarray.make_surface(frame.swapaxes(0, 1))
-                #pygame_frame = pygame.transform.scale(pygame_frame, (screen_width, screen_height))
+                pygame_frame = pygame.transform.scale(pygame_frame, (screen_width, screen_height))
 
                 screen.blit(pygame_frame, (0, 0))
                 pygame.display.flip()
 
                 frame_count += 1
                 clock.tick(clip.fps)
+            
             clip.close()
 
-        #if stop_event detected:
-        clip.close()
-        pygame.quit()
-        return
-    
 
     def run_server(self):
         
-        #Cannot be a daemon, needs proper file handling shutdown
-        thread_gif_display = threading.Thread(target=self.gif_display)
+        thread_gif_display = threading.Thread(target=self.gif_display, daemon=True)
         thread_gif_display.start()
 
-        try:
+        # !! debug=True summons 2 screens instead of 1 !!
+        self.app.run(port=5000, debug=False, use_reloader=False)
 
-            self.app.run(port=5000, debug=True)
-            #Run this at the deployment server, in order to open up the server to the network:
-            #app.run(host='0.0.0.0', port=5000, debug=True)
-            
-        except (KeyboardInterrupt, SystemExit) as ext:
-
-            print("Shutting down gracefully...")
-            self.stop_event.set()  # Signal the thread to stop
-            thread_gif_display.join()  # Wait for the thread to finish
-            print("Background thread stopped.")
-            return
+        #Run this at the deployment server, in order to open up the server to the network:
+        #app.run(host='0.0.0.0', port=5000, debug=False)
         
         return
 
