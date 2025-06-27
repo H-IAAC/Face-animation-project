@@ -14,7 +14,7 @@ class GifServer:
         self.app = Flask(__name__)
         self.animation_queue = Queue()
         self.stop_event = threading.Event()  # Event to stop display thread
-        self.default_animation_path = "animations/sad.gif"
+        self.default_animation_path = "animations/neutral.gif"
         self.current_path = self.default_animation_path
         self.setup_route()
 
