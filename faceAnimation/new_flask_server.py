@@ -1,9 +1,9 @@
+import pygame
 from flask import Flask, request, jsonify
 import threading
 from queue import Queue, Empty
-import pygame
 from pygame.locals import *
-from moviepy.editor import VideoFileClip
+from moviepy import *
 
 
 
